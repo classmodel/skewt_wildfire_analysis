@@ -35,7 +35,6 @@ cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
 
 # Sidebar inputs.
 with st.sidebar:
-    st.header('Case')
     case_names = ['Custom'] + cases['name'].tolist()
     selected_case = st.selectbox('Select case', case_names, index=case_names.index('Pont de Vilomara'))
 
@@ -58,39 +57,39 @@ with st.sidebar:
         default_lon = 5.666
         default_date = date.today()
 
-    st.header('Location & date')
-    lat = st.number_input('Latitude (°N)', value=default_lat, min_value=-90.0, max_value=90.0, step=0.1, format='%.2f')
-    lon = st.number_input('Longitude (°E)', value=default_lon, min_value=-180.0, max_value=180.0, step=0.1, format='%.2f')
-    sel_date = st.date_input('Date', value=default_date)
+    with st.expander('Location & date', expanded=False):
+        lat = st.number_input('Latitude (°N)', value=default_lat, min_value=-90.0, max_value=90.0, step=0.1, format='%.2f')
+        lon = st.number_input('Longitude (°E)', value=default_lon, min_value=-180.0, max_value=180.0, step=0.1, format='%.2f')
+        sel_date = st.date_input('Date', value=default_date)
 
-    st.header('Model')
-    models = {
-        'best_match': 'Best match',
-        'ecmwf_ifs025': 'ECMWF IFS 9 km',
-        'ecmwf_aifs025_single': 'ECMWF AIFS',
-        'icon_seamless': 'DWD ICON seamless',
-        'metno_seamless': 'MET Nordic',
-        'gfs_seamless': 'NOAA GFS seamless',
-        'gem_seamless': 'CWS GEM seamless',
-        'meteofrance_seamless': 'MeteoFrance seamless',
-        'ukmo_seamless': 'UKMO seamless',
-    }
-    model_keys = list(models.keys())
-    model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
+    with st.expander('Model', expanded=False):
+        models = {
+            'best_match': 'Best match',
+            'ecmwf_ifs025': 'ECMWF IFS 9 km',
+            'ecmwf_aifs025_single': 'ECMWF AIFS',
+            'icon_seamless': 'DWD ICON seamless',
+            'metno_seamless': 'MET Nordic',
+            'gfs_seamless': 'NOAA GFS seamless',
+            'gem_seamless': 'CWS GEM seamless',
+            'meteofrance_seamless': 'MeteoFrance seamless',
+            'ukmo_seamless': 'UKMO seamless',
+        }
+        model_keys = list(models.keys())
+        model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
 
     fetch = st.button('Fetch & plot', type='primary', width='stretch')
 
-    st.header('Parcel control')
-    launch_parcel = st.checkbox('Launch parcel', key='launch_parcel', value=False)
-    if launch_parcel:
-        parcel_type = st.radio('Parcel type', ['Non-entraining', 'Entraining'], horizontal=True)
-        deltaT = st.slider('ΔT (K)', min_value=-5.0, max_value=20.0, value=1.0, step=0.5, key='deltaT')
-        deltaq = st.slider('Δq (g/kg)', min_value=0.0, max_value=10.0, value=1.0, step=0.1, key='deltaq') * 1e-3
-        if parcel_type == 'Entraining':
-            area_plume = st.slider('Fire area (km²)', min_value=0.1, max_value=10.0, value=0.3, step=0.1, key='area_plume') * 1e6
+    with st.expander('Parcel control', expanded=False):
+        launch_parcel = st.checkbox('Launch parcel', key='launch_parcel', value=False)
+        if launch_parcel:
+            parcel_type = st.radio('Parcel type', ['Non-entraining', 'Entraining'], horizontal=True)
+            deltaT = st.slider('ΔT (K)', min_value=-5.0, max_value=20.0, value=1.0, step=0.5, key='deltaT')
+            deltaq = st.slider('Δq (g/kg)', min_value=0.0, max_value=10.0, value=1.0, step=0.1, key='deltaq') * 1e-3
+            if parcel_type == 'Entraining':
+                area_plume = st.slider('Fire area (km²)', min_value=0.1, max_value=10.0, value=0.3, step=0.1, key='area_plume') * 1e6
 
-    st.header('Sounding')
-    uploaded_file = st.file_uploader('Upload sounding CSV', type='csv')
+    with st.expander('Sounding', expanded=False):
+        uploaded_file = st.file_uploader('Upload sounding CSV', type='csv')
 
 # Fetch model data.
 if 'meteo' not in st.session_state:
