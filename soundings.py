@@ -68,28 +68,31 @@ def load_sounding_stations(min_end_year=2025):
     )
 
 
-def get_nearest_sounding(ds, lat, lon):
+def get_nearest_soundings(ds, lat, lon, n=5):
     """
-    Return the station in ds nearest to the given lat/lon.
+    Return the n stations in ds nearest to the given lat/lon.
 
     Uses an equirectangular approximation.
 
     Parameters:
     ----------
     ds : xr.Dataset
-        Dataset returned by load_igra2_stations.
+        Dataset returned by load_sounding_stations.
     lat : float
         Latitude in degrees.
     lon : float
         Longitude in degrees.
+    n : int
+        Number of nearest stations to return.
 
     Returns:
     -------
     xr.Dataset
-        Single-station slice of ds.
+        Slice of ds with the n nearest stations, sorted by distance.
     """
     dlat = ds['lat'].values - lat
     dlon = (ds['lon'].values - lon) * np.cos(np.radians(lat))
-    idx = int(np.argmin(np.hypot(dlat, dlon)))
+    dist = np.hypot(dlat, dlon)
+    idxs = np.argsort(dist)[:n]
 
-    return ds.isel(station=idx)
+    return ds.isel(station=idxs)

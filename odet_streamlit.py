@@ -9,7 +9,11 @@ import skewT as skt
 import thermo as thrm
 
 from soundings import parse_data_portal_sounding
-from soundings import load_sounding_stations, get_nearest_sounding
+from soundings import load_sounding_stations, get_nearest_soundings
+
+@st.cache_resource
+def get_sounding_stations():
+    return load_sounding_stations()
 
 @st.cache_resource
 def get_skewt_lines():
@@ -89,6 +93,11 @@ with st.sidebar:
                 area_plume = st.slider('Fire area (km²)', min_value=0.1, max_value=10.0, value=0.3, step=0.1, key='area_plume') * 1e6
 
     with st.expander('Sounding', expanded=False):
+        stations = get_sounding_stations()
+        nearest = get_nearest_soundings(stations, lat, lon, n=5)
+        options = [f"{nearest['code'].values[i]} — {nearest['name'].values[i].title()}" for i in range(nearest.sizes['station'])]
+        selected_station = st.selectbox('Nearest stations', options, index=None, placeholder='Select a station...')
+        station_code = selected_station.split(' — ')[0] if selected_station else None
         uploaded_file = st.file_uploader('Upload sounding CSV', type='csv')
 
 # Fetch model data.
