@@ -119,8 +119,11 @@ sounding_df = None
 if uploaded_file is not None:
     sounding_df = parse_data_portal_sounding(uploaded_file)
 elif station_code:
-    dt = pd.Timestamp(sel_date)
-    sounding_df = fetch_wyoming_sounding(station_code, dt)
+    try:
+        dt = pd.Timestamp(sel_date)
+        sounding_df = fetch_wyoming_sounding(station_code, dt)
+    except Exception:
+        st.warning('Error fetching sounding.')
 
 # Main panel.
 has_meteo = st.session_state.meteo is not None
