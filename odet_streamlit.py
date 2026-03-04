@@ -7,7 +7,9 @@ import open_meteo
 import parcel as prcl
 import skewT as skt
 import thermo as thrm
-from helpers import parse_sounding
+
+from soundings import parse_data_portal_sounding
+from soundings import load_sounding_stations, get_nearest_sounding
 
 @st.cache_resource
 def get_skewt_lines():
@@ -28,8 +30,8 @@ st.html("""
 st.set_page_config(page_title='ODET sounding analysis', layout='wide')
 st.title('🌳🔥🌲 | ODET sounding analysis')
 
-# Load cases.
-cases = pd.read_csv('cases.csv', parse_dates=['date'])
+# Load cases from wild fire data portal.
+cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
 
 # Sidebar inputs.
 with st.sidebar:
@@ -103,7 +105,7 @@ if fetch:
 # Parse uploaded sounding.
 sounding_df = None
 if uploaded_file is not None:
-    sounding_df = parse_sounding(uploaded_file)
+    sounding_df = parse_data_portal_sounding(uploaded_file)
 
 # Main panel.
 has_meteo = st.session_state.meteo is not None
