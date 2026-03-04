@@ -9,7 +9,7 @@ import skewT as skt
 import thermo as thrm
 
 from soundings import parse_data_portal_sounding
-from soundings import load_sounding_stations, get_nearest_soundings
+from soundings import load_sounding_stations, get_nearest_soundings, station_distance_bearing
 
 @st.cache_resource
 def get_sounding_stations():
@@ -98,6 +98,10 @@ with st.sidebar:
         options = [f"{nearest['code'].values[i]} — {nearest['name'].values[i].title()}" for i in range(nearest.sizes['station'])]
         selected_station = st.selectbox('Nearest stations', options, index=None, placeholder='Select a station...')
         station_code = selected_station.split(' — ')[0] if selected_station else None
+        if station_code:
+            i = list(nearest['code'].values).index(station_code)
+            dist_km, direction = station_distance_bearing(nearest.isel(station=i), lat, lon)
+            st.write(f"🧭 {dist_km:.0f} km {direction}")
         uploaded_file = st.file_uploader('Upload sounding CSV', type='csv')
 
 # Fetch model data.

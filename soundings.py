@@ -68,6 +68,39 @@ def load_sounding_stations(min_end_year=2025):
     )
 
 
+def station_distance_bearing(station, lat, lon):
+    """
+    Return the distance (km) and compass direction from lat/lon to a station.
+
+    Parameters:
+    ----------
+    station : xr.Dataset
+        Single-station slice from load_sounding_stations.
+    lat : float
+        Origin latitude in degrees.
+    lon : float
+        Origin longitude in degrees.
+
+    Returns:
+    -------
+    dist_km : float
+        Distance in kilometres.
+    direction : str
+        Compass direction from origin to station (e.g. 'NE', 'SW').
+    """
+    R = 6371.0
+    dlat = np.radians(station['lat'].item() - lat)
+    dlon = np.radians(station['lon'].item() - lon)
+    a = np.sin(dlat / 2)**2 + np.cos(np.radians(lat)) * np.cos(np.radians(station['lat'].item())) * np.sin(dlon / 2)**2
+    dist_km = 2 * R * np.arcsin(np.sqrt(a))
+
+    bearing = np.degrees(np.arctan2(dlon, dlat)) % 360
+    directions = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest']
+    direction = directions[int((bearing + 22.5) / 45) % 8]
+
+    return dist_km, direction
+
+
 def get_nearest_soundings(ds, lat, lon, n=5):
     """
     Return the n stations in ds nearest to the given lat/lon.
