@@ -8,7 +8,7 @@ import parcel as prcl
 import skewT as skt
 import thermo as thrm
 
-from soundings import parse_data_portal_sounding
+from soundings import parse_data_portal_sounding, fetch_wyoming_sounding
 from soundings import load_sounding_stations, get_nearest_soundings, station_distance_bearing
 
 @st.cache_resource
@@ -114,10 +114,13 @@ if fetch:
         st.session_state.meteo = open_meteo.get_sounding(lat, lon, model, date_str)
         st.session_state.model = model
 
-# Parse uploaded sounding.
+# Parse uploaded sounding or fetch from UWyoming.
 sounding_df = None
 if uploaded_file is not None:
     sounding_df = parse_data_portal_sounding(uploaded_file)
+elif station_code:
+    dt = pd.Timestamp(sel_date)
+    sounding_df = fetch_wyoming_sounding(station_code, dt)
 
 # Main panel.
 has_meteo = st.session_state.meteo is not None

@@ -1,5 +1,8 @@
+import io
+
 import numpy as np
 import pandas as pd
+import requests
 import xarray as xr
 
 import thermo as thrm
@@ -66,6 +69,56 @@ def load_sounding_stations(min_end_year=2025):
         },
         coords={'station': active.index.values},
     )
+
+
+def fetch_wyoming_sounding(station_code, dt):
+    """
+    Fetch a radiosonde sounding from the University of Wyoming archive.
+
+    Parameters:
+    ----------
+    station_code : str
+        5-digit WMO station code (e.g. '06260').
+    dt : datetime-like
+        Date and time of the sounding.
+
+    Returns:
+    -------
+    pd.DataFrame
+        DataFrame with columns: pressure (Pa), height (m), temperature (K),
+        dewpoint (K), relative_humidity (%), wind_direction (°), wind_speed (m/s).
+    """
+    url = (
+        f"https://weather.uwyo.edu/wsgi/sounding"
+        f"?datetime={pd.Timestamp(dt).strftime('%Y-%m-%d %H:%M:%S')}"
+        f"&id={station_code}&type=TEXT:CSV&src=BUFR"
+    )
+    response = requests.get(url)
+    response.raise_for_status()
+
+    df = pd.read_csv(io.StringIO(response.text))
+    df.columns = [
+        'time', 'lon', 'lat', 'pressure', 'height', 'temperature', '_dewpoint',
+        '_ice_point', 'relative_humidity', '_humidity_ice', '_mixing_ratio',
+        'heading', 'speed',
+    ]
+    df['pressure']    *= 100           # hPa → Pa
+    df['temperature'] += thrm.T0       # °C → K
+
+    df['exner'] = thrm.exner(df['pressure'])
+    df['theta'] = df['temperature'] / df['exner']
+
+    es = thrm.esat(df['temperature'])
+    e  = df['relative_humidity'] / 100 * es
+
+    df['qt'] = e * 0.622 / df['pressure']
+    df['Td'] = thrm.dewpoint(df['qt'], df['pressure'])
+
+    wind_dir_rad = np.deg2rad(df['heading'])
+    df['u'] = df['speed'] * np.sin(wind_dir_rad)
+    df['v'] = df['speed'] * np.cos(wind_dir_rad)
+
+    return df
 
 
 def station_distance_bearing(station, lat, lon):
