@@ -141,6 +141,10 @@ with st.sidebar:
     # --- Select case (at bottom of sidebar) ----------
     st.selectbox('Select case', case_names, index=None, placeholder='Select a case', key='_selected_case')
 
+    # --- Known issues ----------
+    st.divider()
+    st.caption('**Known issues (stlite)**\n- Loading sounding does not work\n- "Here and now" does not work')
+
 
 # --- Fetch model data from open-meteo ----------
 if 'meteo' not in st.session_state:
