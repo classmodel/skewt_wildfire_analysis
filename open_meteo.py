@@ -1,10 +1,9 @@
-from retry_requests import retry
 from datetime import datetime
 
 import pandas as pd
 import numpy as np
 import xarray as xr
-import requests_cache
+import requests
 
 import openmeteo_requests
 import thermo as thrm
@@ -66,10 +65,8 @@ def get_meteo(lat, lon, model, pressure_lev_vars, pressure_levs, single_lev_vars
             variables.append(f'{var}_{lev}hPa')
     variables += single_lev_vars
 
-    # Setup the Open-Meteo API client with cache and retry on error.
-    cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-    retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-    openmeteo = openmeteo_requests.Client(session = retry_session)
+    # Setup the Open-Meteo API client.
+    openmeteo = openmeteo_requests.Client(session=requests.Session())
 
     params = {
         "latitude": lat,
