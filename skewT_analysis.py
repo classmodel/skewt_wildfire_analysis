@@ -12,6 +12,10 @@ import thermo as thrm
 
 from soundings import parse_data_portal_sounding, fetch_wyoming_sounding
 from soundings import load_sounding_stations, get_nearest_soundings, station_distance_bearing
+try:
+    from streamlit_js_eval import get_geolocation
+except ImportError:
+    get_geolocation = None
 
 @st.cache_resource
 def get_sounding_stations():
@@ -22,15 +26,6 @@ def get_skewt_lines():
     stl = skt.SkewT_lines()
     stl.calc()
     return stl
-
-@st.cache_resource
-def get_user_location():
-    try:
-        with urllib.request.urlopen("https://ipwho.is/") as r:
-            data = json.loads(r.read())
-        return data['latitude'], data['longitude']
-    except Exception:
-        return 51.986, 5.666
 
 st.html("""
     <style>
@@ -47,6 +42,35 @@ st.title('🌳🔥🌲 | ODET sounding analysis')
 
 # Load cases from wild fire data portal.
 cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
+
+
+# --- Geolocation ----------
+# Must run before sidebar so _selected_case can still be set.
+if get_geolocation is not None:
+    # stlite: use browser geolocation API.
+    if '_override_lat' not in st.session_state and '_geo_requested' not in st.session_state:
+        st.session_state['_geo_requested'] = True
+    if st.session_state.get('_geo_requested'):
+        loc = get_geolocation()
+        if loc:
+            st.session_state['_override_lat'] = loc['coords']['latitude']
+            st.session_state['_override_lon'] = loc['coords']['longitude']
+            st.session_state['_override_date'] = date.today()
+            st.session_state['_selected_case'] = None
+            st.session_state['_geo_requested'] = False
+            st.rerun()
+else:
+    # Regular Streamlit: IP geolocation on first visit.
+    if '_override_lat' not in st.session_state:
+        try:
+            with urllib.request.urlopen("https://ipwho.is/") as r:
+                data = json.loads(r.read())
+            st.session_state['_override_lat'] = data['latitude']
+            st.session_state['_override_lon'] = data['longitude']
+        except Exception:
+            st.session_state['_override_lat'] = 51.97
+            st.session_state['_override_lon'] = 4.92
+
 
 # Sidebar inputs.
 with st.sidebar:
@@ -73,17 +97,24 @@ with st.sidebar:
         default_lon = float(row['lon'])
         default_date = row['date'].date()
     else:
-        user_lat, user_lon = get_user_location()
-        default_lat = st.session_state.get('_override_lat', user_lat)
-        default_lon = st.session_state.get('_override_lon', user_lon)
+        default_lat = st.session_state.get('_override_lat', 51.97)
+        default_lon = st.session_state.get('_override_lon', 4.92)
         default_date = st.session_state.get('_override_date', date.today())
 
     def set_here_and_now():
-        _lat, _lon = get_user_location()
-        st.session_state['_override_lat'] = _lat
-        st.session_state['_override_lon'] = _lon
-        st.session_state['_override_date'] = date.today()
-        st.session_state['_selected_case'] = None
+        if get_geolocation is not None:
+            st.session_state['_geo_requested'] = True
+        else:
+            try:
+                with urllib.request.urlopen("https://ipwho.is/") as r:
+                    data = json.loads(r.read())
+                st.session_state['_override_lat'] = data['latitude']
+                st.session_state['_override_lon'] = data['longitude']
+            except Exception:
+                st.toast('Could not detect location.', icon=':material/location_off:')
+                return
+            st.session_state['_override_date'] = date.today()
+            st.session_state['_selected_case'] = None
 
     with st.expander('Location & date', expanded=True, icon=':material/public:'):
         lat = st.number_input('Latitude (°N)', value=default_lat, min_value=-90.0, max_value=90.0, step=0.1, format='%.2f')
@@ -107,20 +138,6 @@ with st.sidebar:
                 area_plume = st.slider('Fire area (km²)', min_value=0.1, max_value=10.0, value=0.3, step=0.1, key='area_plume') * 1e6
 
 
-    # --- Model selection ----------
-    models = {
-        'best_match': 'Best match',
-        'ecmwf_ifs025': 'ECMWF IFS 9 km',
-        'ecmwf_aifs025_single': 'ECMWF AIFS',
-        'icon_seamless': 'DWD ICON seamless',
-        'metno_seamless': 'MET Nordic',
-        'gfs_seamless': 'NOAA GFS seamless',
-        'gem_seamless': 'CWS GEM seamless',
-        'meteofrance_seamless': 'MeteoFrance seamless',
-        'ukmo_seamless': 'UKMO seamless',
-    }
-    model_keys = list(models.keys())
-
     # --- Plot soundings ----------
     with st.expander('Sounding', expanded=False, icon=':material/stacked_line_chart:'):
         stations = get_sounding_stations()
@@ -136,6 +153,18 @@ with st.sidebar:
 
 
     # --- Model selection ----------
+    models = {
+        'best_match': 'Best match',
+        'ecmwf_ifs025': 'ECMWF IFS 9 km',
+        'ecmwf_aifs025_single': 'ECMWF AIFS',
+        'icon_seamless': 'DWD ICON seamless',
+        'metno_seamless': 'MET Nordic',
+        'gfs_seamless': 'NOAA GFS seamless',
+        'gem_seamless': 'CWS GEM seamless',
+        'meteofrance_seamless': 'MeteoFrance seamless',
+        'ukmo_seamless': 'UKMO seamless',
+    }
+    model_keys = list(models.keys())
     model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
 
     # --- Select case (at bottom of sidebar) ----------
@@ -143,7 +172,7 @@ with st.sidebar:
 
     # --- Known issues ----------
     st.divider()
-    st.caption('**Known issues (stlite)**\n- Loading sounding does not work\n- "Here and now" does not work')
+    st.caption('**Known issues (stlite)**\n- Loading sounding does not work')
 
 
 # --- Fetch model data from open-meteo ----------
