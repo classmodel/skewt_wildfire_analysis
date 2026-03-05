@@ -1,11 +1,8 @@
-from datetime import datetime
-
 import pandas as pd
 import numpy as np
 import xarray as xr
 import requests
 
-import openmeteo_requests
 import thermo as thrm
 
 
@@ -55,9 +52,6 @@ def get_meteo(lat, lon, model, pressure_lev_vars, pressure_levs, single_lev_vars
         url = 'https://historical-forecast-api.open-meteo.com/v1/forecast'
         forecast = False
 
-    n_press_vars = len(pressure_lev_vars)
-    n_press_levs = len(pressure_levs)
-
     # Populate single list of variables.
     variables = []
     for var in pressure_lev_vars:
@@ -65,14 +59,11 @@ def get_meteo(lat, lon, model, pressure_lev_vars, pressure_levs, single_lev_vars
             variables.append(f'{var}_{lev}hPa')
     variables += single_lev_vars
 
-    # Setup the Open-Meteo API client.
-    openmeteo = openmeteo_requests.Client(session=requests.Session())
-
     params = {
         "latitude": lat,
         "longitude": lon,
         "hourly": variables,
-        "models": [model],
+        "models": model,
         "wind_speed_unit": "ms",
     }
 
@@ -82,40 +73,27 @@ def get_meteo(lat, lon, model, pressure_lev_vars, pressure_levs, single_lev_vars
         params['start_date'] = start
         params['end_date'] = end
 
-    response = openmeteo.weather_api(url, params=params)[0]
-    hourly = response.Hourly()
-
-    # Poll first response to get number of times.
-    n_times = hourly.Variables(0).ValuesAsNumpy().size
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+    hourly = response.json()['hourly']
 
     # Gather data in 2D (time, level) and 1D (time) arrays.
     data = {}
     for var in pressure_lev_vars:
-        data[var] = np.zeros((n_times, n_press_levs), dtype=np.float32)
-    
+        data[var] = np.stack(
+            [np.array(hourly[f'{var}_{lev}hPa'], dtype=np.float32) for lev in pressure_levs],
+            axis=1,
+        )
+
     for var in single_lev_vars:
-        data[var] = np.zeros(n_times, dtype=np.float32)
-
-    for i,var in enumerate(pressure_lev_vars):
-        for j in range(n_press_levs):
-            ij = j + i*n_press_levs
-            data[var][:,j] = hourly.Variables(ij).ValuesAsNumpy()
-
-    ij0 = ij+1
-    for i,var in enumerate(single_lev_vars):
-        data[var][:] = hourly.Variables(ij0+i).ValuesAsNumpy()
+        data[var] = np.array(hourly[var], dtype=np.float32)
 
     # Conversions.
     for key in data.keys():
         if 'temperature' in key or 'dew_point' in key:
             data[key] += 273.15
 
-    data['time'] = pd.date_range(
-        start=pd.Timestamp(hourly.Time(), unit='s', tz='UTC'),
-        end=pd.Timestamp(hourly.TimeEnd(), unit='s', tz='UTC'),
-        freq=pd.Timedelta(hourly.Interval(), unit='s'),
-        inclusive='left',
-    )
+    data['time'] = pd.to_datetime(hourly['time'])
 
     return data
 
