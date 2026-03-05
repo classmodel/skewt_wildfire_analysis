@@ -134,6 +134,81 @@ def virtual_temp(T, qt, ql=0, qi=0):
     return T * (1 - (1 - Rv/Rd) * qt - Rv/Rd * (ql + qi))
 
 
+def dqsatdT(T, p):
+    """
+    Compute d(qsat)/dT, consistent with the Bolton esat and qsat formulations.
+
+    Parameters:
+    ----------
+    T : float or np.ndarray
+        Temperature in Kelvin.
+    p : float or np.ndarray
+        Pressure in Pa.
+
+    Returns:
+    -------
+    float or np.ndarray
+        d(qsat)/dT in kg/kg/K.
+    """
+    es = esat(T)
+    Tc = T - T0
+    des_dT = es * a * b / (Tc + b) ** 2
+    den = p - (1.0 - eps) * es
+    return eps * p * des_dT / den ** 2
+
+
+def sat_adjust(thl, qt, p, use_ice=False):
+    """
+    Saturation adjustment (warm, liquid-only).
+
+    Given liquid-water potential temperature, total water specific humidity,
+    and pressure, return temperature and liquid condensate. Only the warm
+    adjustment is implemented; `use_ice` is accepted but ignored.
+
+    Parameters:
+    ----------
+    thl : float
+        Liquid-water potential temperature [K].
+    qt : float
+        Total water specific humidity [kg/kg].
+    p : float
+        Pressure [Pa].
+    use_ice : bool
+        Ignored.
+
+    Returns:
+    -------
+    T : float
+        Temperature [K].
+    ql : float
+        Liquid water specific humidity [kg/kg].
+    qi : float
+        Ice specific humidity [kg/kg] (always 0).
+    qs : float
+        Saturation specific humidity [kg/kg].
+    """
+    tl = thl * exner(p)
+    qs = qsat(tl, p)
+
+    if qt - qs <= 0.0:
+        return tl, 0.0, 0.0, qs
+
+    niter = 0
+    tnr = tl
+    tnr_old = 1e9
+    while abs(tnr - tnr_old) / tnr_old > 1e-5 and niter < 10:
+        niter += 1
+        tnr_old = tnr
+        qs = qsat(tnr, p)
+        f = tnr - tl - Lv / cp * (qt - qs)
+        f_prime = 1.0 + Lv / cp * dqsatdT(tnr, p)
+        tnr -= f / f_prime
+
+    qs = qsat(tnr, p)
+    ql = max(0.0, qt - qs)
+    return tnr, ql, 0.0, qs
+
+
 def dTdp(T, p):
     """
     Compute the lapse rate dT/dp for a saturated parcel.

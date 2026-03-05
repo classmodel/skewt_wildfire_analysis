@@ -1,6 +1,5 @@
 import numpy as np
 import thermo as thrm
-from microhhpy.thermo import sat_adjust
 
 
 def find_lcl(T_sfc, Td_sfc, p_sfc, tol=5):
@@ -194,7 +193,7 @@ def calc_entraining_parcel(
     theta_plume[0] = theta_env[0] + fire_multiplier * dtheta_plume_s
     qt_plume[0] = qt_env[0] + fire_multiplier * dq_plume_s
 
-    T_plume[0], ql, qi, qs = sat_adjust(theta_plume[0], qt_plume[0], p_env[0], use_ice=False)
+    T_plume[0], ql, qi, qs = thrm.sat_adjust(theta_plume[0], qt_plume[0], p_env[0], use_ice=False)
     thetav_plume[0] = thrm.virtual_temp(theta_plume[0], qt_plume[0], ql, qi)
     Tv_plume[0] = thrm.virtual_temp(T_plume[0], qt_plume[0], ql, qi)
 
@@ -219,7 +218,7 @@ def calc_entraining_parcel(
         theta_plume[i] = theta_plume[i-1] - entrainment_plume[i-1] * (theta_plume[i-1] - theta_env[i-1]) / mass_flux_plume[i-1] * dz
         qt_plume[i] = qt_plume[i-1] - entrainment_plume[i-1] * (qt_plume[i-1] - qt_env[i-1]) / mass_flux_plume[i-1] * dz
 
-        T_plume[i], ql, qi, qs = sat_adjust(theta_plume[i], qt_plume[i], p_env[i], use_ice=False)
+        T_plume[i], ql, qi, qs = thrm.sat_adjust(theta_plume[i], qt_plume[i], p_env[i], use_ice=False)
         thetav_plume[i] = thrm.virtual_temp(theta_plume[i], qt_plume[i], ql, qi)
         Tv_plume[i] = thrm.virtual_temp(T_plume[i], qt_plume[i], ql, qi)
 
