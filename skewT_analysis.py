@@ -85,7 +85,7 @@ with st.sidebar:
         st.session_state['_override_date'] = date.today()
         st.session_state['_selected_case'] = None
 
-    with st.expander('Location & date', expanded=True):
+    with st.expander('Location & date', expanded=True, icon=':material/public:'):
         lat = st.number_input('Latitude (°N)', value=default_lat, min_value=-90.0, max_value=90.0, step=0.1, format='%.2f')
         lon = st.number_input('Longitude (°E)', value=default_lon, min_value=-180.0, max_value=180.0, step=0.1, format='%.2f')
         sel_date = st.date_input('Date', value=default_date)
@@ -94,11 +94,11 @@ with st.sidebar:
 
 
     # --- Fetch data and plot! ----------
-    fetch = st.button('Fetch & plot', type='primary', width='stretch')
+    fetch = st.button('Fetch & plot', type='primary', width='stretch', icon=':material/show_chart:')
 
 
     # --- Launch (non-) entraining parcel ----------
-    with st.expander('Parcel control', expanded=False):
+    with st.expander('Parcel control', expanded=False, icon=':material/merge:'):
         launch_parcel = st.checkbox('Launch parcel', key='launch_parcel', value=False)
         if launch_parcel:
             parcel_type = st.radio('Parcel type', ['Non-entraining', 'Entraining'], horizontal=True)
@@ -123,7 +123,7 @@ with st.sidebar:
     model_keys = list(models.keys())
 
     # --- Plot soundings ----------
-    with st.expander('Sounding', expanded=False):
+    with st.expander('Sounding', expanded=False, icon=':material/stacked_line_chart:'):
         stations = get_sounding_stations()
         nearest = get_nearest_soundings(stations, lat, lon, n=5)
         options = [f"{nearest['code'].values[i]} — {nearest['name'].values[i].title()}" for i in range(nearest.sizes['station'])]
@@ -140,7 +140,7 @@ with st.sidebar:
     model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
 
     # --- Select case (at bottom of sidebar) ----------
-    st.selectbox('Select case', case_names, index=None, placeholder='- select case -', key='_selected_case')
+    st.selectbox('Select case', case_names, index=None, placeholder='Select a case', key='_selected_case')
 
 
 # --- Fetch model data from open-meteo ----------
