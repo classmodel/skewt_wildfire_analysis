@@ -59,6 +59,11 @@ if get_geolocation is not None:
             st.session_state['_selected_case'] = None
             st.session_state['_geo_requested'] = False
             st.rerun()
+        elif loc is not None:
+            # Returned something falsy — geolocation denied or failed.
+            st.session_state.setdefault('_override_lat', 51.97)
+            st.session_state.setdefault('_override_lon', 4.92)
+            st.session_state['_geo_requested'] = False
 else:
     # Regular Streamlit: IP geolocation on first visit.
     if '_override_lat' not in st.session_state:
