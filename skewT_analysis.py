@@ -45,25 +45,26 @@ cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
 
 
 # --- Geolocation ----------
-# Must run before sidebar so _selected_case can still be set.
 if get_geolocation is not None:
-    # stlite: use browser geolocation API.
+    # `stlite``: use browser geolocation API.
     if '_override_lat' not in st.session_state and '_geo_requested' not in st.session_state:
         st.session_state['_geo_requested'] = True
+
     if st.session_state.get('_geo_requested'):
         loc = get_geolocation()
-        if loc:
-            st.session_state['_override_lat'] = loc['coords']['latitude']
-            st.session_state['_override_lon'] = loc['coords']['longitude']
+        if loc is not None:
+            if loc:
+                st.session_state['_override_lat'] = loc['coords']['latitude']
+                st.session_state['_override_lon'] = loc['coords']['longitude']
+                st.session_state['_selected_case'] = None
+            else:
+                st.session_state.setdefault('_override_lat', 51.97)
+                st.session_state.setdefault('_override_lon', 4.92)
+
             st.session_state['_override_date'] = date.today()
-            st.session_state['_selected_case'] = None
             st.session_state['_geo_requested'] = False
             st.rerun()
-        elif loc is not None:
-            # Returned something falsy — geolocation denied or failed.
-            st.session_state.setdefault('_override_lat', 51.97)
-            st.session_state.setdefault('_override_lon', 4.92)
-            st.session_state['_geo_requested'] = False
+
 else:
     # Regular Streamlit: IP geolocation on first visit.
     if '_override_lat' not in st.session_state:
@@ -75,6 +76,8 @@ else:
         except Exception:
             st.session_state['_override_lat'] = 51.97
             st.session_state['_override_lon'] = 4.92
+
+        st.session_state['_override_date'] = date.today()
 
 
 # Sidebar inputs.
