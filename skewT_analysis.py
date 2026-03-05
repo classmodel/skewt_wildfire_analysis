@@ -89,7 +89,7 @@ with st.sidebar:
         lat = st.number_input('Latitude (°N)', value=default_lat, min_value=-90.0, max_value=90.0, step=0.1, format='%.2f')
         lon = st.number_input('Longitude (°E)', value=default_lon, min_value=-180.0, max_value=180.0, step=0.1, format='%.2f')
         sel_date = st.date_input('Date', value=default_date)
-        _, col_btn, _ = st.columns([1, 6, 1])
+        _, col_btn, _ = st.columns([1, 8, 1])
         col_btn.button('Here and now', on_click=set_here_and_now, type='primary', icon=':material/my_location:', use_container_width=True)
 
 
