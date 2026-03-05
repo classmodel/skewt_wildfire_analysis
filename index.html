@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>ODET sounding analysis</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser/build/style.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser/build/stlite.js";
+
+      async function loadAndMount() {
+        const files = {};
+
+        const pyFiles = [
+          "odet_streamlit.py",
+          "open_meteo.py",
+          "parcel.py",
+          "skewT.py",
+          "thermo.py",
+          "soundings.py",
+        ];
+
+        const resourceFiles = [
+          "resources/wildfire_cases.csv",
+          "resources/igra2-station-list.txt",
+        ];
+
+        for (const name of [...pyFiles, ...resourceFiles]) {
+          const response = await fetch(name);
+          if (!response.ok) {
+            throw new Error(`Failed to load ${name}`);
+          }
+          files[name] = await response.text();
+        }
+
+        mount(
+          {
+            streamlitConfig: {
+              "client.toolbarMode": "minimal",
+              "theme.baseFontSize": 13,
+              "theme.font": "Source Sans Pro",
+            },
+            requirements: ["requests", "plotly", "xarray"],
+            entrypoint: "odet_streamlit.py",
+            files,
+          },
+          document.getElementById("root"),
+        );
+      }
+
+      loadAndMount().catch((err) => {
+        console.error("Failed to mount Streamlit app:", err);
+      });
+    </script>
+  </body>
+</html>
