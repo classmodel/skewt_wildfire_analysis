@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import numpy as np
 
@@ -88,112 +88,112 @@ class SkewT_lines:
         self.isohumes = skew_transform(T, self.p2_lin[:, np.newaxis], self.skew_factor)
 
 
-class SkewT_mpl:
-    def __init__(self, skewt_lines, mode='color'):
-        """
-        Plot skew-T diagram with Matplotlib.
-        """
-        self.stl = skewt_lines
-
-        self.p_ticks = np.array([1000, 950, 900, 850, 800, 700, 600, 500, 400, 300, 200, 100]) * 100.0
-        self.ylim = (1050e2, 100e2)
-        self.xlim = (-40, 50)
-
-        if mode == 'simple':
-            self.cT = '0.8'          # Isotherms
-            self.cth = '0.8'         # Dry adiabats
-            self.cths = '0.8'        # Moist adiabats
-            self.cr = '0.8'          # Mixing ratio
-            self.lw = 0.5            # Line width
-            self.ls = '--'           # Line style
-        elif mode == 'color':
-            self.cT = '0.7'
-            self.cth = 'tab:red'
-            self.cths = '0.7'
-            self.cr = 'tab:blue'
-            self.lw = 0.5
-            self.ls = '--'
-        else:
-            raise Exception('Invalid color mode.')
-
-
-    def plot(self, figsize=(6,6)):
-        """
-        Create base plot with default static lines.
-        """
-        stl = self.stl
-
-        plt.figure(figsize=figsize, layout='constrained')
-
-        # Default lines diagram.
-        plt.plot(stl.isotherms,      stl.p1_lin, color=self.cT,   linewidth=self.lw, linestyle=self.ls)
-        plt.plot(stl.isohumes,       stl.p2_lin, color=self.cr,   linewidth=self.lw, linestyle=self.ls)
-        plt.plot(stl.dry_adiabats,   stl.p2,     color=self.cth,  linewidth=self.lw, linestyle=self.ls)
-        plt.plot(stl.moist_adiabats, stl.p1,     color=self.cths, linewidth=self.lw, linestyle=self.ls)
-
-        # Finish diagram.
-        plt.yscale('log')
-        plt.gca().invert_yaxis()
-        plt.yticks(self.p_ticks, (self.p_ticks / 100).astype(int))
-        plt.gca().yaxis.set_minor_formatter(plt.NullFormatter())
-        plt.grid(axis='y', linewidth=0.5, color='0.5')
-        plt.xlim(self.xlim)
-        plt.ylim(self.ylim)
-        plt.ylabel('Pressure (hPa)')
-        plt.xlabel('Temperature (°C)')
-
-
-    def plot_sounding(self, T, p, ax=None, *args, **kwargs):
-        """
-        Plot observed or modelled sounding.
-
-        Parameters:
-        ----------
-        T : ndarray
-            Temperature (K)
-        p : ndarray
-            Pressure (Pa)
-        ax : matplotlib axes, optional
-            Axes to plot on. Defaults to current axes.
-        *args, **kwargs :
-            Passed to ax.plot().
-
-        Returns:
-        -------
-        None
-        """
-
-        if ax is None:
-            ax = plt.gca()
-
-        ax.plot(skew_transform(T,  p, self.stl.skew_factor), p, *args, **kwargs)
-        ax.axhline(p[0], color='k', linewidth=0.5)
-
-
-    def plot_non_entraining_parcel(self, parcel, ax=None, *args, **kwargs):
-        """
-        Plot non-entraining parcel
-
-        Parameters:
-        ----------
-        parcel : dict
-            Dict with parcel properties.
-        ax : matplotlib axes, optional
-            Axes to plot on. Defaults to current axes.
-        *args, **kwargs :
-            Passed to ax.plot().
-
-        Returns:
-        -------
-        None
-        """
-
-        if ax is None:
-            ax = plt.gca()
-
-        ax.plot(skew_transform(parcel['T_isohume'], parcel['p_isohume'], self.stl.skew_factor), parcel['p_isohume'], *args, **kwargs)
-        ax.plot(skew_transform(parcel['T_dry'],     parcel['p_dry'],     self.stl.skew_factor), parcel['p_dry'],     *args, **kwargs)
-        ax.plot(skew_transform(parcel['T_moist'],   parcel['p_moist'],   self.stl.skew_factor), parcel['p_moist'],   *args, **kwargs)
+# class SkewT_mpl:
+#     def __init__(self, skewt_lines, mode='color'):
+#         """
+#         Plot skew-T diagram with Matplotlib.
+#         """
+#         self.stl = skewt_lines
+#
+#         self.p_ticks = np.array([1000, 950, 900, 850, 800, 700, 600, 500, 400, 300, 200, 100]) * 100.0
+#         self.ylim = (1050e2, 100e2)
+#         self.xlim = (-40, 50)
+#
+#         if mode == 'simple':
+#             self.cT = '0.8'          # Isotherms
+#             self.cth = '0.8'         # Dry adiabats
+#             self.cths = '0.8'        # Moist adiabats
+#             self.cr = '0.8'          # Mixing ratio
+#             self.lw = 0.5            # Line width
+#             self.ls = '--'           # Line style
+#         elif mode == 'color':
+#             self.cT = '0.7'
+#             self.cth = 'tab:red'
+#             self.cths = '0.7'
+#             self.cr = 'tab:blue'
+#             self.lw = 0.5
+#             self.ls = '--'
+#         else:
+#             raise Exception('Invalid color mode.')
+#
+#
+#     def plot(self, figsize=(6,6)):
+#         """
+#         Create base plot with default static lines.
+#         """
+#         stl = self.stl
+#
+#         plt.figure(figsize=figsize, layout='constrained')
+#
+#         # Default lines diagram.
+#         plt.plot(stl.isotherms,      stl.p1_lin, color=self.cT,   linewidth=self.lw, linestyle=self.ls)
+#         plt.plot(stl.isohumes,       stl.p2_lin, color=self.cr,   linewidth=self.lw, linestyle=self.ls)
+#         plt.plot(stl.dry_adiabats,   stl.p2,     color=self.cth,  linewidth=self.lw, linestyle=self.ls)
+#         plt.plot(stl.moist_adiabats, stl.p1,     color=self.cths, linewidth=self.lw, linestyle=self.ls)
+#
+#         # Finish diagram.
+#         plt.yscale('log')
+#         plt.gca().invert_yaxis()
+#         plt.yticks(self.p_ticks, (self.p_ticks / 100).astype(int))
+#         plt.gca().yaxis.set_minor_formatter(plt.NullFormatter())
+#         plt.grid(axis='y', linewidth=0.5, color='0.5')
+#         plt.xlim(self.xlim)
+#         plt.ylim(self.ylim)
+#         plt.ylabel('Pressure (hPa)')
+#         plt.xlabel('Temperature (°C)')
+#
+#
+#     def plot_sounding(self, T, p, ax=None, *args, **kwargs):
+#         """
+#         Plot observed or modelled sounding.
+#
+#         Parameters:
+#         ----------
+#         T : ndarray
+#             Temperature (K)
+#         p : ndarray
+#             Pressure (Pa)
+#         ax : matplotlib axes, optional
+#             Axes to plot on. Defaults to current axes.
+#         *args, **kwargs :
+#             Passed to ax.plot().
+#
+#         Returns:
+#         -------
+#         None
+#         """
+#
+#         if ax is None:
+#             ax = plt.gca()
+#
+#         ax.plot(skew_transform(T,  p, self.stl.skew_factor), p, *args, **kwargs)
+#         ax.axhline(p[0], color='k', linewidth=0.5)
+#
+#
+#     def plot_non_entraining_parcel(self, parcel, ax=None, *args, **kwargs):
+#         """
+#         Plot non-entraining parcel
+#
+#         Parameters:
+#         ----------
+#         parcel : dict
+#             Dict with parcel properties.
+#         ax : matplotlib axes, optional
+#             Axes to plot on. Defaults to current axes.
+#         *args, **kwargs :
+#             Passed to ax.plot().
+#
+#         Returns:
+#         -------
+#         None
+#         """
+#
+#         if ax is None:
+#             ax = plt.gca()
+#
+#         ax.plot(skew_transform(parcel['T_isohume'], parcel['p_isohume'], self.stl.skew_factor), parcel['p_isohume'], *args, **kwargs)
+#         ax.plot(skew_transform(parcel['T_dry'],     parcel['p_dry'],     self.stl.skew_factor), parcel['p_dry'],     *args, **kwargs)
+#         ax.plot(skew_transform(parcel['T_moist'],   parcel['p_moist'],   self.stl.skew_factor), parcel['p_moist'],   *args, **kwargs)
 
 
 class SkewT_plotly:
