@@ -2,6 +2,8 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from datetime import date
+import urllib.request
+import json
 
 import open_meteo
 import parcel as prcl
@@ -20,6 +22,15 @@ def get_skewt_lines():
     stl = skt.SkewT_lines()
     stl.calc()
     return stl
+
+@st.cache_resource
+def get_user_location():
+    try:
+        with urllib.request.urlopen("https://ipwho.is/") as r:
+            data = json.loads(r.read())
+        return data['latitude'], data['longitude']
+    except Exception:
+        return 51.986, 5.666
 
 st.html("""
     <style>
@@ -40,13 +51,14 @@ cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
 # Sidebar inputs.
 with st.sidebar:
 
-    case_names = ['Custom'] + cases['name'].tolist()
-    selected_case = st.selectbox('Select case', case_names, index=case_names.index('Pont de Vilomara'))
+    case_names = cases['name'].tolist()
 
+    # selected_case is stored in session state via the selectbox key at the bottom.
+    selected_case = st.session_state.get('_selected_case', None)
 
     # --- Reset parcel controls when case changes ----------
     if 'prev_case' not in st.session_state:
-        st.session_state.prev_case = selected_case
+        st.session_state.prev_case = None
     if selected_case != st.session_state.prev_case:
         st.session_state.prev_case = selected_case
         st.session_state.launch_parcel = False
@@ -55,37 +67,30 @@ with st.sidebar:
 
 
     # --- Location (lat/lon) input ----------
-    if selected_case != 'Custom':
+    if selected_case is not None:
         row = cases[cases['name'] == selected_case].iloc[0]
         default_lat = float(row['lat'])
         default_lon = float(row['lon'])
         default_date = row['date'].date()
     else:
-        default_lat = 51.986
-        default_lon = 5.666
-        default_date = date.today()
+        user_lat, user_lon = get_user_location()
+        default_lat = st.session_state.get('_override_lat', user_lat)
+        default_lon = st.session_state.get('_override_lon', user_lon)
+        default_date = st.session_state.get('_override_date', date.today())
 
-    with st.expander('Location & date', expanded=False):
+    def set_here_and_now():
+        _lat, _lon = get_user_location()
+        st.session_state['_override_lat'] = _lat
+        st.session_state['_override_lon'] = _lon
+        st.session_state['_override_date'] = date.today()
+        st.session_state['_selected_case'] = None
+
+    with st.expander('Location & date', expanded=True):
         lat = st.number_input('Latitude (°N)', value=default_lat, min_value=-90.0, max_value=90.0, step=0.1, format='%.2f')
         lon = st.number_input('Longitude (°E)', value=default_lon, min_value=-180.0, max_value=180.0, step=0.1, format='%.2f')
         sel_date = st.date_input('Date', value=default_date)
-
-
-    # --- Model selection ----------
-    with st.expander('Model', expanded=False):
-        models = {
-            'best_match': 'Best match',
-            'ecmwf_ifs025': 'ECMWF IFS 9 km',
-            'ecmwf_aifs025_single': 'ECMWF AIFS',
-            'icon_seamless': 'DWD ICON seamless',
-            'metno_seamless': 'MET Nordic',
-            'gfs_seamless': 'NOAA GFS seamless',
-            'gem_seamless': 'CWS GEM seamless',
-            'meteofrance_seamless': 'MeteoFrance seamless',
-            'ukmo_seamless': 'UKMO seamless',
-        }
-        model_keys = list(models.keys())
-        model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
+        _, col_btn, _ = st.columns([1, 6, 1])
+        col_btn.button('Here and now', on_click=set_here_and_now, type='primary', icon=':material/my_location:', use_container_width=True)
 
 
     # --- Fetch data and plot! ----------
@@ -103,6 +108,20 @@ with st.sidebar:
                 area_plume = st.slider('Fire area (km²)', min_value=0.1, max_value=10.0, value=0.3, step=0.1, key='area_plume') * 1e6
 
 
+    # --- Model selection ----------
+    models = {
+        'best_match': 'Best match',
+        'ecmwf_ifs025': 'ECMWF IFS 9 km',
+        'ecmwf_aifs025_single': 'ECMWF AIFS',
+        'icon_seamless': 'DWD ICON seamless',
+        'metno_seamless': 'MET Nordic',
+        'gfs_seamless': 'NOAA GFS seamless',
+        'gem_seamless': 'CWS GEM seamless',
+        'meteofrance_seamless': 'MeteoFrance seamless',
+        'ukmo_seamless': 'UKMO seamless',
+    }
+    model_keys = list(models.keys())
+
     # --- Plot soundings ----------
     with st.expander('Sounding', expanded=False):
         stations = get_sounding_stations()
@@ -115,6 +134,13 @@ with st.sidebar:
             dist_km, direction = station_distance_bearing(nearest.isel(station=i), lat, lon)
             st.write(f"🧭 {dist_km:.0f} km {direction}")
         uploaded_file = st.file_uploader('Upload sounding CSV', type='csv')
+
+
+    # --- Model selection ----------
+    model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
+
+    # --- Select case (at bottom of sidebar) ----------
+    st.selectbox('Select case', case_names, index=None, placeholder='- select case -', key='_selected_case')
 
 
 # --- Fetch model data from open-meteo ----------
