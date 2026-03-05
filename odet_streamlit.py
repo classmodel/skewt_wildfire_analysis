@@ -39,10 +39,12 @@ cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
 
 # Sidebar inputs.
 with st.sidebar:
+
     case_names = ['Custom'] + cases['name'].tolist()
     selected_case = st.selectbox('Select case', case_names, index=case_names.index('Pont de Vilomara'))
 
-    # Reset parcel controls when case changes.
+
+    # --- Reset parcel controls when case changes ----------
     if 'prev_case' not in st.session_state:
         st.session_state.prev_case = selected_case
     if selected_case != st.session_state.prev_case:
@@ -51,6 +53,8 @@ with st.sidebar:
         st.session_state.deltaT = 0.0
         st.session_state.deltaTd = 0.0
 
+
+    # --- Location (lat/lon) input ----------
     if selected_case != 'Custom':
         row = cases[cases['name'] == selected_case].iloc[0]
         default_lat = float(row['lat'])
@@ -66,6 +70,8 @@ with st.sidebar:
         lon = st.number_input('Longitude (°E)', value=default_lon, min_value=-180.0, max_value=180.0, step=0.1, format='%.2f')
         sel_date = st.date_input('Date', value=default_date)
 
+
+    # --- Model selection ----------
     with st.expander('Model', expanded=False):
         models = {
             'best_match': 'Best match',
@@ -81,8 +87,12 @@ with st.sidebar:
         model_keys = list(models.keys())
         model = st.selectbox('Model', model_keys, index=0, format_func=lambda k: models[k])
 
+
+    # --- Fetch data and plot! ----------
     fetch = st.button('Fetch & plot', type='primary', width='stretch')
 
+
+    # --- Launch (non-) entraining parcel ----------
     with st.expander('Parcel control', expanded=False):
         launch_parcel = st.checkbox('Launch parcel', key='launch_parcel', value=False)
         if launch_parcel:
@@ -92,6 +102,8 @@ with st.sidebar:
             if parcel_type == 'Entraining':
                 area_plume = st.slider('Fire area (km²)', min_value=0.1, max_value=10.0, value=0.3, step=0.1, key='area_plume') * 1e6
 
+
+    # --- Plot soundings ----------
     with st.expander('Sounding', expanded=False):
         stations = get_sounding_stations()
         nearest = get_nearest_soundings(stations, lat, lon, n=5)
@@ -104,7 +116,8 @@ with st.sidebar:
             st.write(f"🧭 {dist_km:.0f} km {direction}")
         uploaded_file = st.file_uploader('Upload sounding CSV', type='csv')
 
-# Fetch model data.
+
+# --- Fetch model data from open-meteo ----------
 if 'meteo' not in st.session_state:
     st.session_state.meteo = None
 
@@ -114,18 +127,20 @@ if fetch:
         st.session_state.meteo = open_meteo.get_sounding(lat, lon, model, date_str)
         st.session_state.model = model
 
-# Parse uploaded sounding or fetch from UWyoming.
+
+# --- Parse uploaded sounding or fetch from UWyoming. ----------
 sounding_df = None
 if uploaded_file is not None:
     sounding_df = parse_data_portal_sounding(uploaded_file)
-elif station_code:
-    try:
-        dt = pd.Timestamp(sel_date)
-        sounding_df = fetch_wyoming_sounding(station_code, dt)
-    except Exception:
-        st.warning('Error fetching sounding.')
+#elif station_code:
+#    try:
+#        dt = pd.Timestamp(sel_date)
+#        sounding_df = fetch_wyoming_sounding(station_code, dt)
+#    except Exception:
+#        st.warning('Error fetching sounding.')
 
-# Main panel.
+
+# --- Main right panel ----------
 has_meteo = st.session_state.meteo is not None
 has_sounding = sounding_df is not None
 
@@ -144,13 +159,13 @@ if has_meteo or has_sounding:
         Td = meteo['Td'].isel(time=t).values
         p = meteo['p'].values
 
-    # Build title.
     if has_meteo:
         model_label = models.get(st.session_state.model, st.session_state.model)
         title = f'{model_label} | {sel_date} {t:02d}:00 UTC | {lat:.2f}°N {lon:.2f}°E'
     else:
         ts = sounding_df.index[0]
         title = f'Sounding | {ts.strftime("%Y-%m-%d %H:%M")} UTC'
+
 
     # Plot skew-T.
     skew = skt.SkewT_plotly(get_skewt_lines())
@@ -161,10 +176,12 @@ if has_meteo or has_sounding:
         skew.plot_sounding(Td, p, name='Td (model)', color='blue')
 
     if has_sounding:
-        skew.plot_sounding(sounding_df['temperature'].values, sounding_df['pressure'].values,
-                           name='T (obs)', color='red', dash='4px,2px')
-        skew.plot_sounding(sounding_df['Td'].values, sounding_df['pressure'].values,
-                           name='Td (obs)', color='blue', dash='4px,2px')
+        skew.plot_sounding(
+            sounding_df['temperature'].values, sounding_df['pressure'].values,
+            name='T (obs)', color='red', dash='4px,2px')
+        skew.plot_sounding(
+            sounding_df['Td'].values, sounding_df['pressure'].values,
+            name='Td (obs)', color='blue', dash='4px,2px')
 
     if launch_parcel:
         if has_meteo:
@@ -191,8 +208,7 @@ if has_meteo or has_sounding:
                 dtheta_plume_s=deltaT,
                 dq_plume_s=deltaq,
                 area_plume_s=area_plume,
-                z_max=12000
-            )
+                z_max=12000)
             skew.plot_entraining_parcel(plume)
 
     st.plotly_chart(skew.fig, width='stretch')
