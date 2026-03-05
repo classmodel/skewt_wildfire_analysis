@@ -37,8 +37,8 @@ st.html("""
 )
 
 # Page config.
-st.set_page_config(page_title='ODET sounding analysis', layout='wide')
-st.title('🌳🔥🌲 | ODET sounding analysis')
+st.set_page_config(page_title='Wildfire sounding analysis', layout='wide')
+st.title(':material/air::material/local_fire_department::material/forest: Wildfire Weather Analysis :material/forest:')
 
 # Load cases from wild fire data portal.
 cases = pd.read_csv('resources/wildfire_cases.csv', parse_dates=['date'])
