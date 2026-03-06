@@ -132,7 +132,11 @@ with st.sidebar:
 
 
     # --- Fetch data and plot! ----------
-    fetch = st.button('Fetch & plot', type='primary', width='stretch', icon=':material/show_chart:')
+    # Use on_click + session_state flag instead of button return value,
+    # because in stlite st.button stays True across reruns.
+    def _request_fetch():
+        st.session_state['_fetch_requested'] = True
+    st.button('Fetch & plot', on_click=_request_fetch, type='primary', width='stretch', icon=':material/show_chart:')
 
 
     # --- Launch (non-) entraining parcel ----------
@@ -187,11 +191,18 @@ with st.sidebar:
 if 'meteo' not in st.session_state:
     st.session_state.meteo = None
 
+# Consume the one-shot fetch flag (on_click sets it; we clear it here so
+# subsequent widget-change reruns don't trigger another fetch).
+fetch = st.session_state.get('_fetch_requested', False)
+st.session_state['_fetch_requested'] = False
+
 if fetch:
-    with st.spinner('Fetching sounding data...'):
-        date_str = sel_date.strftime('%Y-%m-%d')
-        st.session_state.meteo = open_meteo.get_sounding(lat, lon, model, date_str)
-        st.session_state.model = model
+    date_str = sel_date.strftime('%Y-%m-%d')
+    st.session_state.meteo = open_meteo.get_sounding(lat, lon, model, date_str)
+    st.session_state.model = model
+    st.session_state.fetch_lat = lat
+    st.session_state.fetch_lon = lon
+    st.session_state.fetch_date = sel_date
 
 
 # --- Parse uploaded sounding or fetch from UWyoming. ----------
@@ -227,7 +238,10 @@ if has_meteo or has_sounding:
 
     if has_meteo:
         model_label = models.get(st.session_state.model, st.session_state.model)
-        title = f'{model_label} | {sel_date} {t:02d}:00 UTC | {lat:.2f}°N {lon:.2f}°E'
+        _date = st.session_state.get('fetch_date', sel_date)
+        _lat  = st.session_state.get('fetch_lat', lat)
+        _lon  = st.session_state.get('fetch_lon', lon)
+        title = f'{model_label} | {_date} {t:02d}:00 UTC | {_lat:.2f}°N {_lon:.2f}°E'
     else:
         ts = sounding_df.index[0]
         title = f'Sounding | {ts.strftime("%Y-%m-%d %H:%M")} UTC'
