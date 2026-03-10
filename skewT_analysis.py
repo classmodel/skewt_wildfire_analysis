@@ -53,7 +53,7 @@ if get_geolocation is not None:
     if st.session_state.get('_geo_requested'):
         loc = get_geolocation()
         if loc is not None:
-            if loc:
+            if loc and 'coords' in loc:
                 st.session_state['_override_lat'] = loc['coords']['latitude']
                 st.session_state['_override_lon'] = loc['coords']['longitude']
                 st.session_state['_selected_case'] = None
